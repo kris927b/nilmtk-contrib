@@ -2,7 +2,7 @@ from __future__ import print_function, division
 from warnings import warn
 from nilmtk.disaggregate import Disaggregator
 from tensorflow.keras.layers import Layer,Conv1D, Dense, Dropout, Reshape, Flatten, Bidirectional, LSTM, Input, Multiply, Activation, Add, BatchNormalization
-from tensorflow.keras.layers.convolutional import Conv2D, ZeroPadding1D,MaxPooling1D
+from tensorflow.keras.layers import Conv2D, ZeroPadding1D,MaxPooling1D
 from tensorflow.keras import Model
 import os
 import pickle
