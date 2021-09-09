@@ -3,7 +3,7 @@ from warnings import warn
 
 from nilmtk.disaggregate import Disaggregator
 from tensorflow.keras.layers import Conv1D, Dense, Dropout, Reshape, Flatten,Input,GlobalAveragePooling1D
-from tensorflow.keras.layers.pooling import AveragePooling1D
+from tensorflow.keras.layers import AveragePooling1D
 import os
 import pandas as pd
 import numpy as np
