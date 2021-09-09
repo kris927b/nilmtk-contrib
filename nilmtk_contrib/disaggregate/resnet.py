@@ -1,9 +1,9 @@
 from __future__ import print_function, division
 from warnings import warn
 
-from tensorflow.keras.layers.convolutional import Conv2D, ZeroPadding1D,MaxPooling1D
-from tensorflow.keras.layers.core import Activation
-from tensorflow.keras.layers.pooling import AveragePooling1D
+from tensorflow.keras.layers import Conv2D, ZeroPadding1D,MaxPooling1D
+from tensorflow.keras.layers import Activation
+from tensorflow.keras.layers import AveragePooling1D
 
 from nilmtk.disaggregate import Disaggregator
 from tensorflow.keras.layers import Layer,Conv1D, Dense, Dropout, Reshape, Flatten,Add,MaxPool1D,BatchNormalization
