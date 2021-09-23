@@ -12,3 +12,4 @@ from .rnn_attention_classification import RNN_attention_classification
 from .resnet import ResNet
 from .resnet_classification import ResNet_classification
 from .bert import BERT
+from .multi_bert import MultiBERT
