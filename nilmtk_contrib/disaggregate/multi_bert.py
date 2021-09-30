@@ -222,27 +222,10 @@ class MultiBERT(Disaggregator):
                 test_main_array, batch_size=self.batch_size
             )
             print(predictions.shape)
-            #####################
-            # This block is for creating the average of predictions over the different sequences
-            # the counts_arr keeps the number of times a particular timestamp has occured
-            # the sum_arr keeps the number of times a particular timestamp has occured
-            # the predictions are summed for  agiven time, and is divided by the number of times it has occured
 
             for app, appliance in enumerate(self.appliances):
-                l = self.sequence_length
-                n = len(predictions[:, :, app]) + l - 1
-                sum_arr = np.zeros((n))
-                counts_arr = np.zeros((n))
-                o = len(sum_arr)
-                for i in range(len(predictions[:, :, app])):
-                    sum_arr[i : i + l] += predictions[:, :, app][i].flatten()
-                    counts_arr[i : i + l] += 1
-                for i in range(len(sum_arr)):
-                    sum_arr[i] = sum_arr[i] / counts_arr[i]
-
-                #################
                 prediction = self.appliance_params[appliance]["mean"] + (
-                    sum_arr * self.appliance_params[appliance]["std"]
+                    predictions[:, :, app] * self.appliance_params[appliance]["std"]
                 )
                 valid_predictions = prediction.flatten()
                 valid_predictions = np.where(
