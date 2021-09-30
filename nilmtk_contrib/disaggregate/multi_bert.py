@@ -99,7 +99,6 @@ class TokenAndPositionEmbedding(Layer):
         config = super().get_config().copy()
         config.update(
             {
-                "token_emb": self.token_emb,
                 "pos_emb": self.pos_emb,
             }
         )
