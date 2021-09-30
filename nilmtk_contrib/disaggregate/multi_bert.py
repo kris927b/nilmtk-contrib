@@ -250,10 +250,28 @@ class MultiBERT(Disaggregator):
         model = Sequential()
         model.add(
             Conv1D(
-                self.embed_dim,
+                self.embed_dim // 4,
                 5,
                 activation="linear",
                 input_shape=(self.sequence_length, 1),
+                padding="same",
+                strides=1,
+            )
+        )
+        model.add(
+            Conv1D(
+                self.embed_dim // 2,
+                5,
+                activation="linear",
+                padding="same",
+                strides=1,
+            )
+        )
+        model.add(
+            Conv1D(
+                self.embed_dim,
+                5,
+                activation="linear",
                 padding="same",
                 strides=1,
             )
