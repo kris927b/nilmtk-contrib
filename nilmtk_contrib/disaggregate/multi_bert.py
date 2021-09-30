@@ -83,9 +83,9 @@ class TransformerBlock(Layer):
 
 
 class TokenAndPositionEmbedding(Layer):
-    def __init__(self, maxlen, vocab_size, embed_dim):
+    def __init__(self, maxlen, embed_dim):
         super(TokenAndPositionEmbedding, self).__init__()
-        self.token_emb = Embedding(input_dim=vocab_size, output_dim=embed_dim)
+        # self.token_emb = Embedding(input_dim=vocab_size, output_dim=embed_dim)
         self.pos_emb = Embedding(input_dim=maxlen, output_dim=embed_dim)
 
     def call(self, x):
@@ -136,11 +136,17 @@ class MultiBERT(Disaggregator):
         self.sequence_length = params.get("sequence_length", 481)
         self.n_epochs = params.get("n_epochs", 10)
         self.model = None
-        self.mains_mean = 1800
-        self.mains_std = 600
+        self.mains_mean = []
+        self.mains_std = []
         self.batch_size = params.get("batch_size", 512)
         self.appliance_params = params.get("appliance_params", {})
         self.appliances = []
+        self.embed_dim = params.get("embed_dim", 64)  # Embedding size for each token
+        self.num_heads = params.get("num_heads", 12)  # Number of attention heads
+        self.ff_dim = params.get(
+            "ff_dim", 128
+        )  # Hidden layer size in feed forward network inside transformer
+        self.layers = params.get("layers", 4)  # Number of transformer blocks
         if self.sequence_length % 2 == 0:
             print("Sequence length should be odd!")
             raise (SequenceLengthError)
@@ -239,16 +245,12 @@ class MultiBERT(Disaggregator):
 
     def return_network(self, num_appliances):
         """Creates the BERT module"""
-        embed_dim = 32  # Embedding size for each token
-        num_heads = 2  # Number of attention heads
-        ff_dim = 32  # Hidden layer size in feed forward network inside transformer
-        vocab_size = 20000  # vocab for different patterns in reading
         maxlen = self.sequence_length  # maxlength for attention
 
         model = Sequential()
         model.add(
             Conv1D(
-                32,
+                self.embed_dim,
                 5,
                 activation="linear",
                 input_shape=(self.sequence_length, 1),
@@ -259,14 +261,14 @@ class MultiBERT(Disaggregator):
         model.add(LPpool(pool_size=2))
 
         # Token and Positional embedding and Encoder part of the transformer
-        model.add(TokenAndPositionEmbedding(maxlen, vocab_size, embed_dim))
-        model.add(TransformerBlock(embed_dim, num_heads, ff_dim))
-        model.add(TransformerBlock(embed_dim, num_heads, ff_dim))
+        model.add(TokenAndPositionEmbedding(maxlen, self.embed_dim))
+        for _ in self.layers:
+            model.add(TransformerBlock(self.embed_dim, self.num_heads, self.ff_dim))
 
         # Fully connected layer
         model.add(
             Conv1DTranspose(
-                ff_dim, kernel_size=4, strides=2, output_padding=1, padding="same"
+                self.ff_dim, kernel_size=4, strides=2, output_padding=1, padding="same"
             )
         )
         model.add(Dense(128, activation="tanh"))
@@ -281,6 +283,8 @@ class MultiBERT(Disaggregator):
             processed_mains_lst = []
             for mains in mains_lst:
                 new_mains = mains.values.flatten()
+                mains_mean = np.mean(new_mains)
+                mains_std = np.std(new_mains)
                 n = self.sequence_length
                 units_to_pad = n // 2
                 new_mains = np.pad(
@@ -292,10 +296,12 @@ class MultiBERT(Disaggregator):
                 new_mains = np.array(
                     [new_mains[i : i + n] for i in range(len(new_mains) - n + 1)]
                 )
-                new_mains = (new_mains - self.mains_mean) / self.mains_std
+                new_mains = (new_mains - mains_mean) / mains_std
+                self.mains_mean.append(mains_mean)
+                self.mains_std.append(mains_std)
                 processed_mains_lst.append(pd.DataFrame(new_mains))
             appliance_list = []
-            for app_index, (app_name, app_df_lst) in enumerate(submeters_lst):
+            for (app_name, app_df_lst) in submeters_lst:
 
                 if app_name in self.appliance_params:
                     app_mean = self.appliance_params[app_name]["mean"]
@@ -330,7 +336,7 @@ class MultiBERT(Disaggregator):
 
         else:
             processed_mains_lst = []
-            for mains in mains_lst:
+            for i, mains in enumerate(mains_lst):
                 new_mains = mains.values.flatten()
                 n = self.sequence_length
                 units_to_pad = n // 2
@@ -338,7 +344,7 @@ class MultiBERT(Disaggregator):
                 new_mains = np.array(
                     [new_mains[i : i + n] for i in range(len(new_mains) - n + 1)]
                 )
-                new_mains = (new_mains - self.mains_mean) / self.mains_std
+                new_mains = (new_mains - self.mains_mean[i]) / self.mains_std[i]
                 new_mains = new_mains.reshape((-1, self.sequence_length))
                 processed_mains_lst.append(pd.DataFrame(new_mains))
             return processed_mains_lst
