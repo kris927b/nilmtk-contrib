@@ -262,7 +262,7 @@ class MultiBERT(Disaggregator):
 
         # Token and Positional embedding and Encoder part of the transformer
         model.add(TokenAndPositionEmbedding(maxlen, self.embed_dim))
-        for _ in self.layers:
+        for _ in range(self.layers):
             model.add(TransformerBlock(self.embed_dim, self.num_heads, self.ff_dim))
 
         # Fully connected layer
