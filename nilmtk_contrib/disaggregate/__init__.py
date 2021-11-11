@@ -13,3 +13,4 @@ from .resnet import ResNet
 from .resnet_classification import ResNet_classification
 from .bert import BERT
 from .multi_bert import MultiBERT
+from .bert4nilm import BERT4NILM

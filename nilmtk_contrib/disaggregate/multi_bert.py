@@ -11,10 +11,11 @@ from tensorflow.keras.optimizers import SGD
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import (
     Layer,
-    MultiHeadAttention,
     LayerNormalization,
     Embedding,
 )
+
+from tensorflow_addons.layers import MultiHeadAttention
 
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.callbacks import ModelCheckpoint
@@ -45,7 +46,7 @@ class ApplianceNotFoundError(Exception):
 class TransformerBlock(Layer):
     def __init__(self, embed_dim, num_heads, ff_dim, rate=0.1):
         super(TransformerBlock, self).__init__()
-        self.att = MultiHeadAttention(num_heads=num_heads, key_dim=embed_dim)
+        self.att = MultiHeadAttention(num_heads=num_heads, head_size=embed_dim)
         self.ffn = Sequential(
             [
                 Dense(ff_dim, activation="relu"),
@@ -58,9 +59,7 @@ class TransformerBlock(Layer):
         self.dropout2 = Dropout(rate)
 
     def call(self, inputs, training):
-        attn_output, att_weights = self.att(
-            inputs, inputs, return_attention_scores=True
-        )
+        attn_output = self.att([inputs, inputs])
         attn_output = self.dropout1(attn_output, training=training)
         out1 = self.layernorm1(inputs + attn_output)
         ffn_output = self.ffn(out1)
@@ -249,25 +248,6 @@ class MultiBERT(Disaggregator):
         model = Sequential()
         model.add(
             Conv1D(
-                self.embed_dim // 4,
-                5,
-                activation="linear",
-                input_shape=(self.sequence_length, 1),
-                padding="same",
-                strides=1,
-            )
-        )
-        model.add(
-            Conv1D(
-                self.embed_dim // 2,
-                5,
-                activation="linear",
-                padding="same",
-                strides=1,
-            )
-        )
-        model.add(
-            Conv1D(
                 self.embed_dim,
                 5,
                 activation="linear",
@@ -289,7 +269,7 @@ class MultiBERT(Disaggregator):
             )
         )
         model.add(Dense(128, activation="tanh"))
-        model.add(Dense(num_appliances))
+        model.add(Dense(num_appliances, activation="sigmoid"))
         model.summary()
         model.compile(loss="mse", optimizer="adam", metrics=["mse"])
         return model
