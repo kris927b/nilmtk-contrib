@@ -154,6 +154,7 @@ class BERT4NILM(Disaggregator):
             "washer_dryer": 3500.0,
             "microwave": 1800.0,
             "dishwasher": 1200.0,
+            "television": 2000.0,
         }
 
         self.threshold = {
@@ -161,6 +162,7 @@ class BERT4NILM(Disaggregator):
             "washer_dryer": 20.0,
             "microwave": 200.0,
             "dishwasher": 10.0,
+            "television": 50.0,
         }
 
         self.min_on = {
@@ -168,6 +170,7 @@ class BERT4NILM(Disaggregator):
             "washer_dryer": 300,
             "microwave": 2,
             "dishwasher": 300,
+            "television": 1,
         }
 
         self.min_off = {
@@ -175,6 +178,7 @@ class BERT4NILM(Disaggregator):
             "washer_dryer": 26,
             "microwave": 5,
             "dishwasher": 300,
+            "television": 1,
         }
 
         self.c0 = {
@@ -182,6 +186,7 @@ class BERT4NILM(Disaggregator):
             "washer_dryer": 0.001,
             "microwave": 1.0,
             "dishwasher": 1.0,
+            "television": 1.0,
         }
 
     def partial_fit(
