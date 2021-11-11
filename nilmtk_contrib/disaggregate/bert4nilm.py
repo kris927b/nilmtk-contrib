@@ -361,7 +361,7 @@ class BERT4NILM(Disaggregator):
         model.compile(
             loss=self.bert_loss(cutoff, threshold, c0),
             optimizer="adam",
-            metrics=["mse"],
+            metrics=["mse", "mae"],
         )
         return model
 
@@ -436,7 +436,7 @@ class BERT4NILM(Disaggregator):
                 l1_loss_on = l1_on(
                     tf.reshape(logits_on, [-1]), tf.reshape(labels_on, [-1])
                 )
-                total_loss += c0 * l1_loss_on / total_size
+                total_loss = total_loss + c0 * l1_loss_on / total_size
 
             return total_loss
 
@@ -457,9 +457,8 @@ class BERT4NILM(Disaggregator):
 
     @staticmethod
     def soft_margin_loss(x, y):
-        top = tf.math.log(tf.math.exp(-y * x) + 1.0)
-        bottom = tf.reduce_sum(x)
-        return tf.reduce_sum(top / bottom)
+        top = tf.math.log(tf.math.exp(-x * y) + 1.0)
+        return tf.reduce_sum(top) / tf.cast(tf.size(x), dtype=tf.float32)
 
     def call_preprocessing(self, mains_lst, submeters_lst, method):
 
