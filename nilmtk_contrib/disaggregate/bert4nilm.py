@@ -20,6 +20,7 @@ from tensorflow.keras.layers import (
     Embedding,
     Conv1DTranspose,
 )
+from tensorflow.keras.activations import gelu
 
 from tensorflow_addons.layers import MultiHeadAttention
 
@@ -51,28 +52,49 @@ class ApplianceNotFoundError(Exception):
 # https://github.com/keras-team/keras-io/blob/master/examples/nlp/text_classification_with_transformer.py
 
 
+class SublayerConnection(Layer):
+    def __init__(self, dropout):
+        super(SublayerConnection, self).__init__()
+        self.layer_norm = LayerNormalization(epsilon=1e-6)
+        self.dropout = Dropout(dropout)
+
+    def call(self, x, sublayer):
+        return self.layer_norm(x + self.dropout(sublayer(x)))
+
+    def get_config(self):
+        config = super().get_config().copy()
+        config.update({"layer_norm": self.layer_norm, "dropout": self.dropout})
+        return config
+
+
+class PositionwiseFeedForward(Layer):
+    def __init__(self, d_model, d_ff):
+        super(PositionwiseFeedForward, self).__init__()
+        self.w_1 = Dense(d_ff)
+        self.w_2 = Dense(d_model)
+
+    def call(self, x):
+        return self.w_2(gelu(self.w_1(x)))
+
+    def get_config(self):
+        config = super().get_config().copy()
+        config.update({"w_1": self.w_1, "w_2": self.w_2})
+        return config
+
+
 class TransformerBlock(Layer):
     def __init__(self, embed_dim, num_heads, ff_dim, rate=0.1):
         super(TransformerBlock, self).__init__()
         self.att = MultiHeadAttention(num_heads=num_heads, head_size=embed_dim)
-        self.ffn = Sequential(
-            [
-                Dense(ff_dim, activation="relu"),
-                Dense(embed_dim),
-            ]
-        )
-        self.layernorm1 = LayerNormalization(epsilon=1e-6)
-        self.layernorm2 = LayerNormalization(epsilon=1e-6)
-        self.dropout1 = Dropout(rate)
-        self.dropout2 = Dropout(rate)
+        self.ffn = PositionwiseFeedForward(d_model=embed_dim, d_ff=ff_dim)
+        self.input_sublayer = SublayerConnection(dropout=rate)
+        self.output_sublayer = SublayerConnection(dropout=rate)
+        self.dropout = Dropout(rate)
 
     def call(self, inputs, training):
-        attn_output = self.att([inputs, inputs])
-        attn_output = self.dropout1(attn_output, training=training)
-        out1 = self.layernorm1(inputs + attn_output)
-        ffn_output = self.ffn(out1)
-        ffn_output = self.dropout2(ffn_output, training=training)
-        return self.layernorm2(out1 + ffn_output)
+        x = self.input_sublayer(inputs, lambda _in: self.att([_in, _in]))
+        x = self.output_sublayer(x, self.ffn)
+        return self.dropout(x, training=training)
 
     def get_config(self):
         config = super().get_config().copy()
@@ -80,10 +102,9 @@ class TransformerBlock(Layer):
             {
                 "att": self.att,
                 "ffn": self.ffn,
-                "layernorm1": self.layernorm1,
-                "layernorm2": self.layernorm2,
-                "dropout1": self.dropout1,
-                "dropout2": self.dropout2,
+                "sublayer_in": self.input_sublayer,
+                "sublayer_out": self.output_sublayer,
+                "dropout": self.dropout,
             }
         )
         return config
@@ -342,7 +363,7 @@ class BERT4NILM(Disaggregator):
 
         # Token and Positional embedding and Encoder part of the transformer
         model.add(PositionEmbedding(int(maxlen / 2), hidden_size))
-        model.add(LayerNormalization())
+        model.add(LayerNormalization(epsilon=1e-6))
         model.add(Dropout(dropout_rate))
 
         # Transformer layers

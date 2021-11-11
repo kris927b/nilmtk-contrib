@@ -16,7 +16,7 @@ else:
     MAJOR = 0
     MINOR = 1
     MICRO = 3
-    DEV = 4  # For multiple dev pre-releases, please increment this value
+    DEV = 6  # For multiple dev pre-releases, please increment this value
     ISRELEASED = False
     VERSION = "%d.%d.%d" % (MAJOR, MINOR, MICRO)
     QUALIFIER = ""
