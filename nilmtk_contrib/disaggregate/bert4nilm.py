@@ -20,9 +20,9 @@ from tensorflow.keras.layers import (
     Embedding,
     Conv1DTranspose,
 )
-from tensorflow.keras.activations import gelu
 
 from tensorflow_addons.layers import MultiHeadAttention
+from tensorflow_addons.activations import gelu
 
 from tensorflow.keras.losses import KLDivergence, MeanSquaredError, MeanAbsoluteError
 
